@@ -1,0 +1,37 @@
+name: "DLP: Misdirected Email - Recipient Domain Typo"
+description: |
+  Detects sensitive outbound email sent to an external root domain within two
+  case-insensitive edit operations of an organizational domain. Whole root domains
+  are compared because strings.split() is not supported in every tenant.
+type: "dlp"
+severity: "medium"
+source: |
+  type.outbound
+  and (
+    any(recipients.to,
+      .email.domain.root_domain not in $org_domains
+      and any($org_domains, strings.ilevenshtein(..email.domain.root_domain, .) <= 2)
+    )
+    or any(recipients.cc,
+      .email.domain.root_domain not in $org_domains
+      and any($org_domains, strings.ilevenshtein(..email.domain.root_domain, .) <= 2)
+    )
+    or any(recipients.bcc,
+      .email.domain.root_domain not in $org_domains
+      and any($org_domains, strings.ilevenshtein(..email.domain.root_domain, .) <= 2)
+    )
+  )
+  and (
+    length(attachments) > 0
+    or length(body.current_thread.text) > 200
+  )
+attack_types:
+  - "Data Exfiltration"
+detection_methods:
+  - "Header analysis"
+  - "Content analysis"
+tags:
+  - "DLP-Custom-Use-Cases"
+  - "Misdirected-Email"
+  - "Domain-Typo"
+id: "3b871d65-a5c2-5d4c-9cef-245ab72775ea"

@@ -1,0 +1,33 @@
+name: "DLP: Source Code Sent Externally"
+description: |
+  Detects source code and ERP package files (PL/SQL, Python, Java, JavaScript,
+  TypeScript, Go, C#, C/C++ and more) over 3 KB sent to any external recipient.
+  Filenames that look like examples, samples, tests, templates or tutorials are
+  excluded. Ported from dlp-toolkit/rules/baseline/03_source_code_exfil.yml.
+type: "dlp"
+severity: "high"
+source: |
+  type.outbound
+  and any(attachments,
+    .file_extension in~ (
+      "sql", "pkb", "pks", "plb", "pls", "pck",
+      "py", "java", "js", "ts", "go", "rb", "php",
+      "cs", "cpp", "c", "h", "r", "scala", "kt", "swift"
+    )
+    and .size > 3000
+    and not strings.ilike(.file_name,
+      "*example*", "*sample*", "*test*", "*demo*", "*template*",
+      "*readme*", "*tutorial*", "*exercise*"
+    )
+  )
+  and not all(recipients.to, .email.domain.root_domain in $org_domains)
+attack_types:
+  - "Data Exfiltration"
+detection_methods:
+  - "File analysis"
+  - "Header analysis"
+tags:
+  - "DLP-Custom-Use-Cases"
+  - "Source-Code"
+  - "Intellectual-Property"
+id: "908ffbea-0d38-5808-95bc-47419dc741c8"

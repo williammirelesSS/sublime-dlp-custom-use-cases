@@ -1,0 +1,44 @@
+name: "DLP: Microsoft Purview Sensitivity Label Sent Externally"
+description: |
+  Detects outbound email carrying a Microsoft Purview sensitivity label in an
+  MSIP_Labels header or embedded in an Office or PDF attachment. The rule recognizes
+  Confidential, Highly Confidential, and Restricted label names.
+type: "dlp"
+severity: "high"
+source: |
+  type.outbound
+  and (
+    any(recipients.to, .email.domain.root_domain not in $org_domains)
+    or any(recipients.cc, .email.domain.root_domain not in $org_domains)
+    or any(recipients.bcc, .email.domain.root_domain not in $org_domains)
+  )
+  and (
+    any(headers.hops,
+      any(.fields,
+        .name in~ ("MSIP_Labels", "X-MSIP-Labels")
+        and strings.ilike(.value,
+          "*Confidential*", "*Highly Confidential*", "*Restricted*"
+        )
+      )
+    )
+    or any(attachments,
+      .file_extension in~ ("doc", "docx", "xls", "xlsx", "ppt", "pptx", "pdf")
+      and any(file.explode(.),
+        any(.scan.strings.strings,
+          strings.icontains(., "Microsoft Rights Label")
+          and strings.ilike(., "*Confidential*", "*Highly Confidential*", "*Restricted*")
+        )
+      )
+    )
+  )
+attack_types:
+  - "Data Exfiltration"
+detection_methods:
+  - "Header analysis"
+  - "File analysis"
+  - "Content analysis"
+tags:
+  - "DLP-Custom-Use-Cases"
+  - "Purview"
+  - "Sensitivity-Label"
+id: "b70f0c24-ccdc-5041-ae38-e7c519a0d499"

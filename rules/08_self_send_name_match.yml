@@ -1,0 +1,42 @@
+name: "DLP: Personal Email Recipient Matches Sender Name"
+description: |
+  Detects outbound attachments sent to freemail addresses whose local part matches
+  or contains the organizational sender's local part. This raises confidence that the
+  recipient is the sender's personal account.
+type: "dlp"
+severity: "high"
+source: |
+  type.outbound
+  and length(attachments) > 0
+  and any(recipients.to,
+    .email.domain.root_domain in $free_email_providers
+    and (
+      .email.local_part =~ sender.email.local_part
+      or (
+        length(sender.email.local_part) >= 4
+        and strings.icontains(.email.local_part, sender.email.local_part)
+      )
+      or (
+        strings.contains(sender.email.local_part, ".")
+        and any(
+          regex.iextract(sender.email.local_part,
+            '^(?P<s1>[^.]+)\.(?P<s2>[^.]+)(?:\.(?P<s3>[^.]+))?(?:\.(?P<s4>[^.]+))?$'
+          ),
+          (length(.named_groups["s1"]) < 3 or strings.icontains(..email.local_part, .named_groups["s1"]))
+          and (length(.named_groups["s2"]) < 3 or strings.icontains(..email.local_part, .named_groups["s2"]))
+          and (.named_groups["s3"] == null or length(.named_groups["s3"]) < 3 or strings.icontains(..email.local_part, .named_groups["s3"]))
+          and (.named_groups["s4"] == null or length(.named_groups["s4"]) < 3 or strings.icontains(..email.local_part, .named_groups["s4"]))
+        )
+      )
+    )
+  )
+attack_types:
+  - "Data Exfiltration"
+detection_methods:
+  - "Header analysis"
+  - "File analysis"
+tags:
+  - "DLP-Custom-Use-Cases"
+  - "Self-Send"
+  - "Identity-Correlation"
+id: "247b4433-c36b-56bc-a07b-79bc57f000db"

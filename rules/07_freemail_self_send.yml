@@ -1,0 +1,30 @@
+name: "DLP: Attachment Sent to Personal Email"
+description: |
+  Detects organizational users sending attachments to personal email providers.
+  Common personal-document subjects are excluded to reduce expected benign self-service
+  use. Deploy detection-only first and tune for approved workflows.
+type: "dlp"
+severity: "medium"
+source: |
+  type.outbound
+  and length(attachments) > 0
+  and any(recipients.to,
+    .email.domain.root_domain in $free_email_providers
+  )
+  and not (
+    subject.subject is not null
+    and strings.ilike(subject.subject,
+      "*expense*", "*receipt*", "*personal*", "*insurance*", "*dental*",
+      "*pension*", "*benefit*", "*payslip*", "*pay slip*", "*nomina*"
+    )
+  )
+attack_types:
+  - "Data Exfiltration"
+detection_methods:
+  - "Header analysis"
+  - "File analysis"
+tags:
+  - "DLP-Custom-Use-Cases"
+  - "Self-Send"
+  - "Freemail"
+id: "417626d9-e0e3-51c1-8c30-ddfd3681009a"

@@ -1,0 +1,28 @@
+name: "DLP: Upcoming Leaver Sends Attachment Externally"
+description: |
+  Detects an employee in the custom $org_upcoming_leavers string list sending an
+  attachment externally. Calendar-only messages and automated senders are excluded.
+  The demo list must remain clearly identified as synthetic.
+type: "dlp"
+severity: "high"
+source: |
+  type.outbound
+  and sender.email.email in $org_upcoming_leavers
+  and (
+    any(recipients.to, .email.domain.root_domain not in $org_domains)
+    or any(recipients.cc, .email.domain.root_domain not in $org_domains)
+    or any(recipients.bcc, .email.domain.root_domain not in $org_domains)
+  )
+  and length(attachments) > 0
+  and not all(attachments, .file_extension =~ "ics")
+  and sender.email.local_part not in~ ("noreply", "no-reply", "no_reply", "donotreply")
+attack_types:
+  - "Data Exfiltration"
+detection_methods:
+  - "Header analysis"
+  - "File analysis"
+tags:
+  - "DLP-Custom-Use-Cases"
+  - "Departure"
+  - "Leavers-Scoped"
+id: "b22f6baf-a396-5f2d-83fa-c026ca5a229d"

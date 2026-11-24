@@ -1,0 +1,36 @@
+name: "DLP: Departure Language with Archive Sent to Freemail"
+description: |
+  Detects a high-confidence compound departure signal: backup or departure language,
+  an archive or attachment larger than 5 MB, and a personal email recipient.
+type: "dlp"
+severity: "high"
+source: |
+  type.outbound
+  and (
+    strings.ilike(subject.subject,
+      "*backup*", "*my files*", "*personal copy*", "*just in case*",
+      "*last day*", "*leaving*", "*farewell*"
+    )
+    or strings.ilike(body.current_thread.text,
+      "*last day*", "*leaving the company*", "*notice period*",
+      "*my replacement*", "*handing over to*"
+    )
+  )
+  and any(attachments,
+    .file_extension in~ ("zip", "tar", "gz", "7z", "rar")
+    or .size > 5000000
+  )
+  and any(recipients.to,
+    .email.domain.root_domain in $free_email_providers
+  )
+attack_types:
+  - "Data Exfiltration"
+detection_methods:
+  - "Content analysis"
+  - "File analysis"
+  - "Header analysis"
+tags:
+  - "DLP-Custom-Use-Cases"
+  - "Departure"
+  - "Compound-Signal"
+id: "5a3e0c1b-c3f5-5f2f-9e52-00dbd1b2324f"

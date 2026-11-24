@@ -1,0 +1,29 @@
+name: "DLP: Bulk Data Export Sent to Personal Email"
+description: |
+  Detects spreadsheet, CSV or database files over 50 KB sent to a personal email
+  provider. This is the classic CRM or customer-list export to a personal mailbox
+  before departure, and a GDPR/CCPA exposure. The size threshold skips trivial
+  exports. Ported from dlp-toolkit/rules/baseline/04_bulk_data_freemail.yml.
+type: "dlp"
+severity: "high"
+source: |
+  type.outbound
+  and any(attachments,
+    .file_extension in~ ("csv", "xlsx", "xls", "sql", "db", "sqlite")
+    and .size > 50000
+  )
+  and (
+    any(recipients.to, .email.domain.root_domain in $free_email_providers)
+    or any(recipients.cc, .email.domain.root_domain in $free_email_providers)
+    or any(recipients.bcc, .email.domain.root_domain in $free_email_providers)
+  )
+attack_types:
+  - "Data Exfiltration"
+detection_methods:
+  - "File analysis"
+  - "Header analysis"
+tags:
+  - "DLP-Custom-Use-Cases"
+  - "Bulk-Data"
+  - "Freemail"
+id: "c7b69ca7-2697-512a-9050-ac8a5e12e66c"

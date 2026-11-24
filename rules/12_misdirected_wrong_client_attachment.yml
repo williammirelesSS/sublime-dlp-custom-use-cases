@@ -1,0 +1,36 @@
+name: "DLP: Misdirected Email - Attachment Names a Different Client"
+description: |
+  Detects outbound email where every To recipient is at one external business
+  organization, and an attachment filename names a client from the custom
+  $org_client_names string list that does not match that organization's domain.
+  Catches the classic wrong-attachment mistake: one client's statement, report or
+  contract sent to another client.
+  List entries are short client names that also appear in the client's email domain
+  (for example "northwind" for northwind.com). The demo list is synthetic.
+type: "dlp"
+severity: "high"
+source: |
+  type.outbound
+  and length(attachments) > 0
+  and length(recipients.to) > 0
+  and all(recipients.to,
+    .email.domain.root_domain not in $org_domains
+    and .email.domain.root_domain not in $free_email_providers
+    and .email.domain.root_domain == recipients.to[0].email.domain.root_domain
+  )
+  and any(attachments,
+    any($org_client_names,
+      strings.icontains(..file_name, .)
+      and not strings.icontains(recipients.to[0].email.domain.domain, .)
+    )
+  )
+attack_types:
+  - "Data Exfiltration"
+detection_methods:
+  - "File analysis"
+  - "Header analysis"
+tags:
+  - "DLP-Custom-Use-Cases"
+  - "Misdirected"
+  - "Wrong-Attachment"
+id: "9dee4c31-5095-5ac1-98e9-acd8a940b363"

@@ -1,0 +1,31 @@
+name: "DLP: Misdirected Email - External Recipient Display Name Matches Internal Employee"
+description: |
+  Detects outbound email to an external recipient whose display name matches a known
+  internal employee. Requires an attachment or explicit sensitive-content language
+  to reduce collisions involving common names.
+type: "dlp"
+severity: "medium"
+source: |
+  type.outbound
+  and any(recipients.to,
+    .email.domain.root_domain not in $org_domains
+    and .display_name is not null
+    and length(.display_name) > 2
+    and .display_name in~ $org_display_names
+  )
+  and (
+    length(attachments) > 0
+    or strings.ilike(body.current_thread.text,
+      "*confidential*", "*sensitive*", "*internal only*",
+      "*not for distribution*", "*privileged*"
+    )
+  )
+attack_types:
+  - "Data Exfiltration"
+detection_methods:
+  - "Header analysis"
+  - "Content analysis"
+tags:
+  - "DLP-Custom-Use-Cases"
+  - "Misdirected-Email"
+id: "47ccdf4c-a138-5641-aec1-bed7fc03bda1"
